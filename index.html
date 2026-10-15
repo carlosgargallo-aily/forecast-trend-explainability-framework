@@ -391,18 +391,18 @@
     </p>
     <p>
       This layer attributes that forward growth to a small set of business
-      drivers, in clear units (volume or currency), so the story is readable
-      without statistical jargon.
+      drivers, shown to the client as <strong>relative importance (%)</strong>,
+      so the story is readable without statistical or monetary jargon.
     </p>
 
     <div class="grid-2">
       <div class="card">
         <p class="label">What it delivers</p>
         <ul>
-          <li>Six‑month underlying growth to explain</li>
-          <li>Contribution of each driver in volume or €</li>
-          <li>Share of impact for visual intensity</li>
-          <li>A simple waterfall narrative</li>
+          <li>Six‑month underlying growth to explain (context)</li>
+          <li>Importance of each driver as a <strong>percentage</strong> of total effect</li>
+          <li>Intensity bars from those percentages</li>
+          <li>A simple narrative waterfall</li>
         </ul>
       </div>
       <div class="card">
@@ -457,7 +457,7 @@
         <div class="num">6</div>
         <div>
           <strong>Present a waterfall</strong>
-          <p>Show each driver’s impact in business units and its share of total explained impact.</p>
+          <p>Show each driver’s <strong>importance as a percentage</strong> of total absolute effect (not volume or €).</p>
         </div>
       </div>
     </div>
@@ -537,9 +537,9 @@
     </p>
     <div class="formula">Growth = Trend(today + 6 months) − Trend(today)</div>
     <p>
-      That value is expressed in the same commercial units as the forecast
-      (for example volume or local currency), so contributions can be read
-      directly on a waterfall.
+      That value is computed in the same commercial units as the forecast
+      (volume or currency) for the attribution step.
+      <strong>Clients only see driver importance as percentages</strong>, not those units.
     </p>
 
     <h2 id="drivers">5. Drivers and features</h2>
@@ -583,20 +583,20 @@
     <p>
       Features belonging to the same business driver are grouped
       (for example all patient features → Patients). Each driver’s total
-      contribution becomes its impact on six‑month growth.
+      contribution is converted to a client‑facing <strong>importance %</strong>:
     </p>
-    <p>Share of impact used for intensity bars:</p>
-    <div class="formula">Share = |driver impact| / sum(|all driver impacts|)</div>
+    <div class="formula">Importance % = |driver contribution| / sum(|all driver contributions|)</div>
     <ul>
-      <li><strong>Impact</strong> keeps the sign (supports or offsets growth).</li>
-      <li><strong>Share</strong> shows relative magnitude for visual comparison.</li>
+      <li>Sign is kept separately (supports vs offsets): e.g. <strong>Patients +68%</strong>, <strong>Price −12%</strong>.</li>
+      <li>Absolute percentages across drivers sum to <strong>100%</strong> (intensity bars).</li>
+      <li>Volume/€ contributions stay internal; they are <strong>not</strong> shown to the client.</li>
       <li>Any remainder not captured by drivers can appear as <strong>Unexplained</strong>.</li>
     </ul>
 
     <h2 id="output">7. What users see</h2>
     <p>
-      Users never see raw feature names, horizons, or model weights. They see a
-      small set of <strong>business drivers</strong>, each with:
+      Users never see raw feature names, horizons, model weights, or contribution
+      amounts in volume/€. They see a small set of <strong>business drivers</strong>, each with:
     </p>
     <table>
       <thead>
@@ -611,12 +611,8 @@
           <td>Natural‑language label (Patients, Price, Commercial investment, Competition, Unexplained, …)</td>
         </tr>
         <tr>
-          <td><strong>Impact</strong></td>
-          <td>Signed effect on six‑month underlying growth (volume or €)</td>
-        </tr>
-        <tr>
-          <td><strong>Share of impact</strong></td>
-          <td>Relative size of that effect (for intensity bars)</td>
+          <td><strong>Importance</strong></td>
+          <td>Share of total absolute effect, with sign (support or headwind)</td>
         </tr>
         <tr>
           <td><strong>Plain‑language note</strong> (optional)</td>
@@ -625,20 +621,19 @@
       </tbody>
     </table>
     <p>
-      <strong>Default view:</strong> a waterfall (or intensity list) from baseline
-      underlying growth to the explained total.
+      <strong>Default view:</strong> a waterfall (or intensity list) of driver importance percentages.
     </p>
     <p>
       <strong>Drill‑down (optional, still non‑technical):</strong> expand a driver
       to see which time lens mattered most — for example under Patients:
-      “Last 3 months” vs “Last 12 months” — without exposing feature engineering names.
+      “Last 3 months” vs “Last 12 months” — without exposing feature engineering names or unit amounts.
     </p>
     <div class="callout">
       <p>
-        Over the next six months, underlying growth is <strong>+1.9k units</strong>.<br />
-        <strong>Patients +2.4k</strong>, <strong>Price −0.4k</strong>,
-        <strong>Commercial investment +0.3k</strong>, <strong>Competition −0.2k</strong>,
-        <strong>Unexplained −0.2k</strong>.
+        Over the next six months, underlying growth is positive.<br />
+        <strong>Patients +68%</strong>, <strong>Price −12%</strong>,
+        <strong>Commercial investment +10%</strong>, <strong>Competition −7%</strong>,
+        <strong>Plan alignment +3%</strong>.
       </p>
     </div>
 
@@ -661,15 +656,15 @@
     <h2 id="example">9. Illustrative example</h2>
     <p>
       Product‑market: Dupixent, US, atopic dermatitis. Baseline: September 2026.
-      Six‑month underlying growth to explain: <strong>+1.90k volume units</strong>.
-      Figures are illustrative.
+      Figures are illustrative. Attribution may use volume/€ internally;
+      <strong>everything below is what the client can see — importance in % only</strong>.
     </p>
 
     <h3 id="example-signals">9.1 Signals used by the attribution model</h3>
     <p>
       The model can use several measurements per data source, each covering a
-      different time window. These rows are <strong>internal</strong> — the end
-      user does not see this table as‑is.
+      different time window. Importance % = that signal’s share of total absolute
+      effect (signed for support / headwind).
     </p>
     <div class="table-scroll">
       <table>
@@ -679,7 +674,7 @@
             <th>What is measured</th>
             <th>Time window</th>
             <th class="num-col">Value at baseline (Sep 2026)</th>
-            <th class="num-col">Effect on 6‑month growth</th>
+            <th class="num-col">Importance</th>
           </tr>
         </thead>
         <tbody>
@@ -688,161 +683,151 @@
             <td>Number of patients on treatment</td>
             <td>Today</td>
             <td class="num-col">18,500 patients</td>
-            <td class="num-col pos">+0.25k units</td>
+            <td class="num-col pos"><strong>+8%</strong></td>
           </tr>
           <tr>
             <td>Patients</td>
             <td>Change in patients</td>
             <td>Last 3 months</td>
             <td class="num-col">+220 patients</td>
-            <td class="num-col pos">+0.55k units</td>
+            <td class="num-col pos"><strong>+18%</strong></td>
           </tr>
           <tr>
             <td>Patients</td>
             <td>Change in patients</td>
             <td>Last 6 months</td>
             <td class="num-col">+480 patients</td>
-            <td class="num-col pos">+0.35k units</td>
+            <td class="num-col pos"><strong>+12%</strong></td>
           </tr>
           <tr>
             <td>Patients</td>
             <td>Patient growth rate</td>
             <td>Last 12 months</td>
             <td class="num-col">+8.0%</td>
-            <td class="num-col pos">+0.90k units</td>
+            <td class="num-col pos"><strong>+30%</strong></td>
           </tr>
           <tr>
             <td>Price</td>
             <td>Net price per unit</td>
             <td>Today</td>
             <td class="num-col">$1,120</td>
-            <td class="num-col neg">−0.05k units</td>
+            <td class="num-col neg"><strong>−2%</strong></td>
           </tr>
           <tr>
             <td>Price</td>
             <td>Net price change</td>
             <td>Last 3 months</td>
             <td class="num-col">−2.0%</td>
-            <td class="num-col neg">−0.22k units</td>
+            <td class="num-col neg"><strong>−7%</strong></td>
           </tr>
           <tr>
             <td>Price</td>
             <td>Net price change</td>
             <td>Last 12 months</td>
             <td class="num-col">+1.0%</td>
-            <td class="num-col neg">−0.08k units</td>
+            <td class="num-col neg"><strong>−3%</strong></td>
           </tr>
           <tr>
             <td>Commercial investment</td>
             <td>Spend intensity</td>
             <td>Last 3 months</td>
             <td class="num-col">Index 4.2</td>
-            <td class="num-col pos">+0.10k units</td>
+            <td class="num-col pos"><strong>+3%</strong></td>
           </tr>
           <tr>
             <td>Commercial investment</td>
             <td>Spend vs same period last year</td>
             <td>Last 12 months</td>
             <td class="num-col">+12%</td>
-            <td class="num-col pos">+0.20k units</td>
+            <td class="num-col pos"><strong>+7%</strong></td>
           </tr>
           <tr>
             <td>Competition</td>
             <td>New competitor entered the market</td>
             <td>Last 6 months</td>
             <td class="num-col">Yes</td>
-            <td class="num-col neg">−0.15k units</td>
+            <td class="num-col neg"><strong>−5%</strong></td>
           </tr>
           <tr>
             <td>Competition</td>
             <td>Competitive pressure</td>
             <td>Last 12 months</td>
             <td class="num-col">Medium</td>
-            <td class="num-col neg">−0.05k units</td>
+            <td class="num-col neg"><strong>−2%</strong></td>
           </tr>
           <tr>
             <td>Plan / outlook</td>
             <td>Planned growth in the outlook</td>
             <td>Next 6 months</td>
             <td class="num-col">+3%</td>
-            <td class="num-col pos">+0.10k units</td>
+            <td class="num-col pos"><strong>+3%</strong></td>
           </tr>
         </tbody>
       </table>
     </div>
     <p class="note">
-      Each “Effect on 6‑month growth” is how much that signal adds to (or subtracts from)
-      the <strong>+1.90k units</strong> of underlying growth being explained.
-      Positive = support; negative = headwind.
+      Positive % = support; negative % = headwind. Absolute values across rows sum to <strong>100%</strong>.
     </p>
 
     <h3 id="example-blend">9.2 Blending time windows into one user‑facing driver</h3>
     <p>
-      Measurements of the <strong>same driver family</strong> are added together
-      before display, so the user sees one label — not four patient rows or three
-      price rows:
+      Measurements of the <strong>same driver family</strong> are combined before
+      display, so the user sees one label — not four patient rows or three price rows:
     </p>
-    <div class="formula">Driver impact = sum of effects of all measurements under that driver family</div>
+    <div class="formula">Driver importance % = sum(|feature contributions|) / sum(|all contributions|)<br />sign = support if net contribution &gt; 0, else headwind</div>
     <div class="table-scroll">
       <table>
         <thead>
           <tr>
             <th>Driver shown to the user</th>
             <th>What was rolled up</th>
-            <th class="num-col">Impact on growth</th>
-            <th class="num-col">Share of total effect</th>
+            <th class="num-col">Importance</th>
           </tr>
         </thead>
         <tbody>
           <tr>
             <td><strong>Patients</strong></td>
             <td>Today + last 3 / 6 / 12 months</td>
-            <td class="num-col pos"><strong>+2.05k units</strong></td>
-            <td class="num-col">61%</td>
+            <td class="num-col pos"><strong>+68%</strong></td>
           </tr>
           <tr>
             <td><strong>Price</strong></td>
             <td>Today + last 3 / 12 months</td>
-            <td class="num-col neg"><strong>−0.35k units</strong></td>
-            <td class="num-col">10%</td>
+            <td class="num-col neg"><strong>−12%</strong></td>
           </tr>
           <tr>
             <td><strong>Commercial investment</strong></td>
             <td>Last 3 months + last 12 months</td>
-            <td class="num-col pos"><strong>+0.30k units</strong></td>
-            <td class="num-col">9%</td>
+            <td class="num-col pos"><strong>+10%</strong></td>
           </tr>
           <tr>
             <td><strong>Competition</strong></td>
             <td>Last 6 months entry + last 12 months pressure</td>
-            <td class="num-col neg"><strong>−0.20k units</strong></td>
-            <td class="num-col">6%</td>
+            <td class="num-col neg"><strong>−7%</strong></td>
           </tr>
           <tr>
             <td><strong>Plan alignment</strong></td>
             <td>Next‑6‑month planned growth</td>
-            <td class="num-col pos"><strong>+0.10k units</strong></td>
-            <td class="num-col">3%</td>
+            <td class="num-col pos"><strong>+3%</strong></td>
           </tr>
           <tr>
             <td><strong>Unexplained</strong></td>
             <td>Anything left after the drivers above</td>
-            <td class="num-col"><strong>0.00k units</strong></td>
-            <td class="num-col">0%</td>
+            <td class="num-col"><strong>0%</strong></td>
           </tr>
         </tbody>
       </table>
     </div>
     <p>
-      In this mock the drivers sum exactly to the <strong>+1.90k</strong> target.
-      In real runs, any gap is shown as <strong>Unexplained</strong>.
+      Absolute importances sum to <strong>100%</strong>.
+      In real runs, any unexplained gap appears as its own %.
     </p>
 
     <div class="card">
       <p class="label">How to talk about mixed time windows</p>
       <ul>
         <li>Do <strong>not</strong> show separate top‑level bars for “patients last 3 months” and “patients last 12 months”.</li>
-        <li>Do show <strong>one</strong> “Patients” bar.</li>
+        <li>Do show <strong>one</strong> “Patients” bar (e.g. <strong>+68%</strong>).</li>
         <li>
           Optionally add a short note from the largest piece, e.g.
           “Mostly supported by <strong>12‑month patient growth</strong>, with additional lift from the <strong>last 3 months</strong>.”
@@ -855,6 +840,7 @@
       <p style="margin:0.35rem 0 0">
         Rule of thumb: <strong>one label per driver family</strong> in the default view;
         time windows only appear in an optional drill‑down or a short supporting sentence.
+        Never show volume or € contribution amounts to the client.
       </p>
     </div>
 
@@ -862,11 +848,11 @@
     <p class="label">Headline</p>
     <div class="callout">
       <p>
-        Over the next 6 months, underlying growth is expected at <strong>+1.9k units</strong>.
-        The main support is <strong>patient expansion</strong>.
-        <strong>Price</strong> slightly offsets the outlook;
-        <strong>commercial investment</strong> adds a smaller positive;
-        <strong>competition</strong> is a mild headwind.
+        Over the next 6 months, underlying growth is positive.
+        The main support is <strong>patient expansion (+68%)</strong>.
+        <strong>Price (−12%)</strong> slightly offsets the outlook;
+        <strong>commercial investment (+10%)</strong> adds a smaller positive;
+        <strong>competition (−7%)</strong> is a mild headwind.
       </p>
     </div>
 
@@ -875,59 +861,59 @@
       <thead>
         <tr>
           <th>Driver</th>
-          <th class="num-col">Impact on growth</th>
+          <th class="num-col">Importance</th>
           <th>Intensity</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td><strong>Patients</strong></td>
-          <td class="num-col pos">+2.05k units</td>
+          <td class="num-col pos"><strong>+68%</strong></td>
           <td>
             <div class="intensity">
-              <div class="bar-track"><div class="bar-fill" style="width:100%"></div></div>
+              <div class="bar-track"><div class="bar-fill" style="width:68%"></div></div>
             </div>
           </td>
         </tr>
         <tr>
           <td><strong>Price</strong></td>
-          <td class="num-col neg">−0.35k units</td>
+          <td class="num-col neg"><strong>−12%</strong></td>
           <td>
             <div class="intensity">
-              <div class="bar-track"><div class="bar-fill neg-bar" style="width:17%"></div></div>
+              <div class="bar-track"><div class="bar-fill neg-bar" style="width:12%"></div></div>
             </div>
           </td>
         </tr>
         <tr>
           <td><strong>Commercial investment</strong></td>
-          <td class="num-col pos">+0.30k units</td>
+          <td class="num-col pos"><strong>+10%</strong></td>
           <td>
             <div class="intensity">
-              <div class="bar-track"><div class="bar-fill" style="width:15%"></div></div>
+              <div class="bar-track"><div class="bar-fill" style="width:10%"></div></div>
             </div>
           </td>
         </tr>
         <tr>
           <td><strong>Competition</strong></td>
-          <td class="num-col neg">−0.20k units</td>
+          <td class="num-col neg"><strong>−7%</strong></td>
           <td>
             <div class="intensity">
-              <div class="bar-track"><div class="bar-fill neg-bar" style="width:10%"></div></div>
+              <div class="bar-track"><div class="bar-fill neg-bar" style="width:7%"></div></div>
             </div>
           </td>
         </tr>
         <tr>
           <td><strong>Plan alignment</strong></td>
-          <td class="num-col pos">+0.10k units</td>
+          <td class="num-col pos"><strong>+3%</strong></td>
           <td>
             <div class="intensity">
-              <div class="bar-track"><div class="bar-fill" style="width:5%"></div></div>
+              <div class="bar-track"><div class="bar-fill" style="width:3%"></div></div>
             </div>
           </td>
         </tr>
         <tr>
           <td><strong>Unexplained</strong></td>
-          <td class="num-col">0.0k units</td>
+          <td class="num-col"><strong>0%</strong></td>
           <td>
             <div class="intensity">
               <div class="bar-track"><div class="bar-fill" style="width:0%"></div></div>
@@ -942,31 +928,34 @@
       <thead>
         <tr>
           <th>Time window</th>
-          <th class="num-col">Impact within Patients</th>
+          <th class="num-col">Importance within Patients</th>
         </tr>
       </thead>
       <tbody>
         <tr>
           <td>Last 12 months</td>
-          <td class="num-col pos">+0.90k units</td>
+          <td class="num-col pos"><strong>+44%</strong></td>
         </tr>
         <tr>
           <td>Last 3 months</td>
-          <td class="num-col pos">+0.55k units</td>
+          <td class="num-col pos"><strong>+27%</strong></td>
         </tr>
         <tr>
           <td>Last 6 months</td>
-          <td class="num-col pos">+0.35k units</td>
+          <td class="num-col pos"><strong>+17%</strong></td>
         </tr>
         <tr>
           <td>Today (patient stock)</td>
-          <td class="num-col pos">+0.25k units</td>
+          <td class="num-col pos"><strong>+12%</strong></td>
         </tr>
       </tbody>
     </table>
+    <p class="note">
+      Drill‑down %s are shares of the Patients family and sum to 100% within that driver.
+    </p>
     <p>
-      Default view stays business language only: driver name, impact on growth,
-      and short notes — no model jargon or engineering field names.
+      Default view: driver name, <strong>importance %</strong>, and short notes —
+      no model jargon, field names, or monetary/volume UOM.
     </p>
 
     <footer>
