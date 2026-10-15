@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Forecast trend explainability</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #07110c;
+      --bg-elevated: #0d1a14;
+      --text: #e8f5ee;
+      --muted: #9bb5a8;
+      --line: rgba(83, 255, 155, 0.16);
+      --accent: #53ff9b;
+      --accent-soft: rgba(83, 255, 155, 0.10);
+      --cyan: #03fff1;
+      --card: #101f18;
+      --radius: 14px;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: "DM Sans", sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    body {
+      background:
+        radial-gradient(1000px 520px at 8% -12%, rgba(3, 255, 241, 0.09), transparent 55%),
+        radial-gradient(800px 420px at 92% 0%, rgba(83, 255, 155, 0.10), transparent 50%),
+        var(--bg);
+    }
+
+    .wrap {
+      width: min(960px, calc(100% - 2.5rem));
+      margin: 0 auto;
+      padding: 2.75rem 0 4.5rem;
+    }
+
+    .table-scroll {
+      width: 100%;
+      overflow-x: auto;
+      margin: 0.75rem 0 1rem;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.18);
+    }
+
+    .table-scroll table {
+      margin: 0;
+      min-width: 720px;
+    }
+
+    .table-scroll th:last-child,
+    .table-scroll td:last-child,
+    .num-col {
+      text-align: right;
+      white-space: nowrap;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .pos { color: var(--accent); }
+    .neg { color: #ff8b8b; }
+
+    .intensity {
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+    }
+
+    .bar-track {
+      flex: 1;
+      min-width: 4.5rem;
+      height: 0.45rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--cyan));
+    }
+
+    .bar-fill.neg-bar {
+      background: linear-gradient(90deg, #ff8b8b, #ffb38a);
+    }
+
+    .note {
+      font-size: 0.9rem;
+      color: var(--muted);
+      margin: 0.35rem 0 1rem;
+    }
+
+    .brand-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.65rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .brand-mark {
+      width: 2rem;
+      height: 2rem;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      background: var(--accent);
+      color: #07110c;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+
+    .brand span {
+      display: block;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+
+    .pill {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      border: 1px solid var(--line);
+      background: rgba(0, 0, 0, 0.25);
+      border-radius: 999px;
+      padding: 0.35rem 0.65rem;
+    }
+
+    .eyebrow {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--cyan);
+      margin: 0 0 0.65rem;
+    }
+
+    h1 {
+      font-size: clamp(1.7rem, 4vw, 2.35rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin: 0 0 0.85rem;
+    }
+
+    .lede {
+      color: var(--muted);
+      font-size: 1.05rem;
+      margin: 0 0 1.5rem;
+      max-width: 68ch;
+    }
+
+    .toc {
+      display: grid;
+      gap: 0.35rem;
+      padding: 1rem 1.15rem;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: linear-gradient(180deg, var(--card), var(--bg-elevated));
+      margin-bottom: 2rem;
+    }
+
+    .toc a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.92rem;
+    }
+
+    .toc a:hover { color: var(--accent); }
+
+    h2 {
+      font-size: 1.2rem;
+      font-weight: 600;
+      margin: 2.6rem 0 0.85rem;
+      padding-top: 1.6rem;
+      border-top: 1px solid var(--line);
+      scroll-margin-top: 1rem;
+    }
+
+    h3 {
+      font-size: 1.02rem;
+      font-weight: 600;
+      margin: 1.35rem 0 0.55rem;
+      color: var(--text);
+    }
+
+    p, li { color: var(--muted); font-size: 0.97rem; }
+    p { margin: 0 0 0.85rem; }
+    ul, ol { margin: 0 0 1rem; padding-left: 1.2rem; }
+    li { margin: 0.3rem 0; }
+    strong { color: var(--text); font-weight: 600; }
+
+    .card {
+      background: linear-gradient(180deg, var(--card), var(--bg-elevated));
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 1.1rem 1.2rem;
+      margin: 0 0 0.85rem;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+    }
+
+    @media (max-width: 720px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    .label {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin: 0 0 0.35rem;
+    }
+
+    .flow {
+      display: grid;
+      gap: 0.45rem;
+      margin: 0.75rem 0 1rem;
+    }
+
+    .flow-step {
+      display: grid;
+      grid-template-columns: 2rem 1fr;
+      gap: 0.75rem;
+      align-items: start;
+      padding: 0.75rem 0.9rem;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      background: rgba(0, 0, 0, 0.2);
+    }
+
+    .num {
+      width: 1.7rem;
+      height: 1.7rem;
+      border-radius: 999px;
+      display: grid;
+      place-items: center;
+      background: var(--accent-soft);
+      border: 1px solid var(--line);
+      color: var(--accent);
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.75rem;
+    }
+
+    .flow-step p { margin: 0; }
+    .flow-step strong { display: block; margin-bottom: 0.15rem; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.75rem 0 1rem;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      text-align: left;
+      padding: 0.65rem 0.7rem;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+
+    th {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    td { color: var(--muted); }
+    td strong { color: var(--text); }
+
+    .callout {
+      border-left: 3px solid var(--accent);
+      padding: 0.85rem 1rem;
+      background: var(--accent-soft);
+      border-radius: 0 12px 12px 0;
+      margin: 0.85rem 0 1rem;
+    }
+
+    .callout p:last-child { margin-bottom: 0; }
+
+    code {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.84em;
+      color: var(--cyan);
+    }
+
+    .formula {
+      font-family: "IBM Plex Mono", monospace;
+      font-size: 0.85rem;
+      color: var(--text);
+      background: rgba(0, 0, 0, 0.28);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 0.85rem 1rem;
+      overflow-x: auto;
+      margin: 0.75rem 0 1rem;
+    }
+
+    footer {
+      margin-top: 2.75rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--line);
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <div class="brand-row">
+      <div class="brand">
+        <div class="brand-mark">AI</div>
+        <div>
+          AILY
+          <span>Decision intelligence</span>
+        </div>
+      </div>
+      <div class="pills">
+        <div class="pill">Explainability</div>
+        <div class="pill">6‑month growth</div>
+        <div class="pill">Sample: Dupixent</div>
+      </div>
+    </div>
+
+    <p class="eyebrow">Forecast trend explainability</p>
+    <h1>Why the next six months grow or decline</h1>
+    <p class="lede">
+      After the monthly forecast is produced, this framework explains the
+      <strong>underlying growth</strong> over the next six months by linking it
+      to business drivers such as patients and price. It does not change the
+      forecast engine. Sanofi Dupixent is shown as a sample application of the
+      same methodology.
+    </p>
+
+    <nav class="toc" aria-label="Contents">
+      <div class="label">Contents</div>
+      <a href="#purpose">1. Purpose</a>
+      <a href="#how">2. How it works</a>
+      <a href="#decompose">3. Isolating underlying growth</a>
+      <a href="#target">4. What we explain</a>
+      <a href="#drivers">5. Drivers and features</a>
+      <a href="#attribution">6. How importance is calculated</a>
+      <a href="#output">7. What users see</a>
+      <a href="#sample">8. Sample application</a>
+      <a href="#example">9. Illustrative example</a>
+    </nav>
+
+    <h2 id="purpose">1. Purpose</h2>
+    <p>
+      Forecast charts answer <em>what</em> will happen. Stakeholders also need
+      <em>why</em> the path is rising or falling over the coming half‑year.
+    </p>
+    <p>
+      This layer attributes that forward growth to a small set of business
+      drivers, in clear units (volume or currency), so the story is readable
+      without statistical jargon.
+    </p>
+
+    <div class="grid-2">
+      <div class="card">
+        <p class="label">What it delivers</p>
+        <ul>
+          <li>Six‑month underlying growth to explain</li>
+          <li>Contribution of each driver in volume or €</li>
+          <li>Share of impact for visual intensity</li>
+          <li>A simple waterfall narrative</li>
+        </ul>
+      </div>
+      <div class="card">
+        <p class="label">How it fits the product</p>
+        <ul>
+          <li>Runs after the monthly forecast exists</li>
+          <li>Independent of which forecasting model was selected</li>
+          <li>Does not retrain or replace the sales forecast</li>
+          <li>Reusable across brands and tenants</li>
+        </ul>
+      </div>
+    </div>
+
+    <h2 id="how">2. How it works</h2>
+    <div class="flow">
+      <div class="flow-step">
+        <div class="num">1</div>
+        <div>
+          <strong>Start from the forecast</strong>
+          <p>Use the monthly forecast series at the relevant product / market grain.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="num">2</div>
+        <div>
+          <strong>Separate seasonality from trend</strong>
+          <p>Decompose the series so short‑term seasonal patterns are not confused with underlying growth.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="num">3</div>
+        <div>
+          <strong>Measure six‑month underlying growth</strong>
+          <p>Compute how the trend component changes from today to six months ahead.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="num">4</div>
+        <div>
+          <strong>Assemble driver signals</strong>
+          <p>Build features from patients, prices, and their recent growth dynamics at the same point in time.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="num">5</div>
+        <div>
+          <strong>Attribute growth to drivers</strong>
+          <p>A linear attribution model links driver signals to the six‑month growth figure.</p>
+        </div>
+      </div>
+      <div class="flow-step">
+        <div class="num">6</div>
+        <div>
+          <strong>Present a waterfall</strong>
+          <p>Show each driver’s impact in business units and its share of total explained impact.</p>
+        </div>
+      </div>
+    </div>
+
+    <h2 id="decompose">3. Isolating underlying growth</h2>
+    <p>
+      Monthly sales move for two different reasons: recurring seasonal patterns,
+      and a slower underlying trajectory. Explainability focuses on the second.
+    </p>
+    <ul>
+      <li>The series is split into <strong>seasonality</strong>, <strong>trend</strong>, and short residual variation.</li>
+      <li>Only the <strong>trend</strong> path is used to define the growth being explained.</li>
+      <li>Seasonality remains in the forecast users see in the app; it is simply not the main object of this explanation.</li>
+    </ul>
+    <p>
+      The figure below is an <strong>illustrative mock</strong> of a classic seasonal
+      decomposition layout (the same four-panel structure produced by libraries such as
+      <code>statsmodels.tsa.seasonal.seasonal_decompose</code>). It is not tenant data.
+    </p>
+    <div class="card" style="padding:0.75rem; overflow:auto">
+      <div style="width:100%; overflow:auto" role="img" aria-label="Seasonal decomposition illustrative mock with Observed, Trend, Seasonal, and Residual panels">
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="780" style="max-width:100%;height:auto;display:block" viewBox="0 0 900 780">
+<rect width="900" height="780" fill="#07110c"/>
+<text x="40" y="34" fill="#e8f5ee" font-family="DM Sans, Helvetica, Arial, sans-serif" font-size="18" font-weight="600">Seasonal decomposition (illustrative mock)</text>
+<text x="40" y="52" fill="#9bb5a8" font-family="DM Sans, Helvetica, Arial, sans-serif" font-size="12">Same panel layout as a classic tsa / statsmodels seasonal_decompose plot</text>
+<rect x="40" y="55" width="830" height="155" rx="12" fill="#0d1a14" stroke="#2a4a38"/>
+<text x="52" y="77" fill="#53ff9b" font-family="IBM Plex Mono, monospace" font-size="12">Observed</text>
+<line x1="70" y1="91.0" x2="850" y2="91.0" stroke="#1a2f24" stroke-width="1"/>
+<line x1="70" y1="117.2" x2="850" y2="117.2" stroke="#1a2f24" stroke-width="1"/>
+<line x1="70" y1="143.5" x2="850" y2="143.5" stroke="#1a2f24" stroke-width="1"/>
+<line x1="70" y1="169.8" x2="850" y2="169.8" stroke="#1a2f24" stroke-width="1"/>
+<line x1="70" y1="196.0" x2="850" y2="196.0" stroke="#1a2f24" stroke-width="1"/>
+<polyline fill="none" stroke="#53ff9b" stroke-width="1.8" points="70.00,196.00 75.45,191.50 80.91,189.10 86.36,187.07 91.82,184.55 97.27,183.78 102.73,183.41 108.18,184.41 113.64,188.68 119.09,192.25 124.55,193.82 130.00,194.19 135.45,192.80 140.91,187.04 146.36,182.10 151.82,179.97 157.27,178.00 162.73,177.47 168.18,177.69 173.64,177.36 179.09,181.32 184.55,188.02 190.00,190.08 195.45,189.53 200.91,186.92 206.36,182.05 211.82,176.47 217.27,173.53 222.73,170.71 228.18,168.81 233.64,171.09 239.09,172.94 244.55,174.61 250.00,180.28 255.45,186.63 260.91,186.03 266.36,181.60 271.82,175.66 277.27,169.17 282.73,166.54 288.18,165.61 293.64,161.47 299.09,160.86 304.55,166.28 310.00,169.66 315.45,175.27 320.91,180.74 326.36,181.23 331.82,176.60 337.27,170.66 342.73,162.81 348.18,156.68 353.64,157.45 359.09,157.18 364.55,153.53 370.00,155.07 375.45,164.06 380.91,170.71 386.36,176.12 391.82,176.41 397.27,169.91 402.73,163.34 408.18,158.46 413.64,150.47 419.09,146.15 424.55,148.32 430.00,146.98 435.45,149.35 440.91,156.42 446.36,164.16 451.82,170.36 457.27,172.59 462.73,165.76 468.18,154.25 473.64,149.06 479.09,145.96 484.55,139.65 490.00,136.06 495.45,139.26 500.91,141.89 506.36,150.37 511.82,159.46 517.27,163.68 522.73,165.31 528.18,162.01 533.64,150.00 539.09,138.64 544.55,135.74 550.00,131.33 555.45,130.41 560.91,131.34 566.36,132.81 571.82,140.65 577.27,154.49 582.73,160.82 588.18,158.21 593.64,153.22 599.09,145.04 604.55,133.09 610.00,124.50 615.45,123.23 620.91,120.11 626.36,123.31 631.82,128.20 637.27,132.13 642.73,144.29 648.18,156.31 653.64,155.38 659.09,145.75 664.55,135.67 670.00,123.17 675.45,118.45 680.91,116.77 686.36,111.04 691.82,109.44 697.27,119.89 702.73,129.28 708.18,136.90 713.64,147.37 719.09,150.04 724.55,140.94 730.00,127.05 735.45,116.63 740.91,106.23 746.36,106.49 751.82,107.31 757.27,100.95 762.73,105.20 768.18,121.18 773.64,133.36 779.09,141.38 784.55,142.96 790.00,131.41 795.45,120.33 800.91,111.66 806.36,99.29 811.82,91.00 817.27,95.54 822.73,97.49 828.18,97.20 833.64,109.48 839.09,125.51 844.55,135.53 850.00,136.53"/>
+<text x="48" y="145" fill="#9bb5a8" font-family="IBM Plex Mono, monospace" font-size="10" transform="rotate(-90 48,145)">Observed</text>
+<rect x="40" y="222" width="830" height="155" rx="12" fill="#0d1a14" stroke="#2a4a38"/>
+<text x="52" y="244" fill="#53ff9b" font-family="IBM Plex Mono, monospace" font-size="12">Trend</text>
+<line x1="70" y1="258.0" x2="850" y2="258.0" stroke="#1a2f24" stroke-width="1"/>
+<line x1="70" y1="284.2" x2="850" y2="284.2" stroke="#1a2f24" stroke-width="1"/>
+<line x1="70" y1="310.5" x2="850" y2="310.5" stroke="#1a2f24" stroke-width="1"/>
+<line x1="70" y1="336.8" x2="850" y2="336.8" stroke="#1a2f24" stroke-width="1"/>
+<line x1="70" y1="363.0" x2="850" y2="363.0" stroke="#1a2f24" stroke-width="1"/>
+<polyline fill="none" stroke="#53ff9b" stroke-width="1.8" points="70.00,363.00 75.45,362.42 80.91,361.83 86.36,361.25 91.82,360.66 97.27,360.07 102.73,359.47 108.18,358.88 113.64,358.28 119.09,357.68 124.55,357.08 130.00,356.48 135.45,355.87 140.91,355.26 146.36,354.65 151.82,354.04 157.27,353.43 162.73,352.81 168.18,352.19 173.64,351.57 179.09,350.95 184.55,350.32 190.00,349.70 195.45,349.07 200.91,348.44 206.36,347.80 211.82,347.17 217.27,346.53 222.73,345.89 228.18,345.25 233.64,344.60 239.09,343.95 244.55,343.31 250.00,342.66 255.45,342.00 260.91,341.35 266.36,340.69 271.82,340.03 277.27,339.37 282.73,338.71 288.18,338.04 293.64,337.37 299.09,336.70 304.55,336.03 310.00,335.36 315.45,334.68 320.91,334.00 326.36,333.32 331.82,332.64 337.27,331.95 342.73,331.26 348.18,330.58 353.64,329.88 359.09,329.19 364.55,328.49 370.00,327.80 375.45,327.10 380.91,326.39 386.36,325.69 391.82,324.98 397.27,324.28 402.73,323.56 408.18,322.85 413.64,322.14 419.09,321.42 424.55,320.70 430.00,319.98 435.45,319.26 440.91,318.53 446.36,317.80 451.82,317.07 457.27,316.34 462.73,315.61 468.18,314.87 473.64,314.13 479.09,313.39 484.55,312.65 490.00,311.90 495.45,311.16 500.91,310.41 506.36,309.65 511.82,308.90 517.27,308.15 522.73,307.39 528.18,306.63 533.64,305.87 539.09,305.10 544.55,304.33 550.00,303.57 555.45,302.80 560.91,302.02 566.36,301.25 571.82,300.47 577.27,299.69 582.73,298.91 588.18,298.13 593.64,297.34 599.09,296.55 604.55,295.76 610.00,294.97 615.45,294.18 620.91,293.38 626.36,292.58 631.82,291.78 637.27,290.98 642.73,290.17 648.18,289.37 653.64,288.56 659.09,287.75 664.55,286.93 670.00,286.12 675.45,285.30 680.91,284.48 686.36,283.66 691.82,282.83 697.27,282.01 702.73,281.18 708.18,280.35 713.64,279.51 719.09,278.68 724.55,277.84 730.00,277.00 735.45,276.16 740.91,275.32 746.36,274.47 751.82,273.63 757.27,272.78 762.73,271.92 768.18,271.07 773.64,270.21 779.09,269.35 784.55,268.49 790.00,267.63 795.45,266.77 800.91,265.90 806.36,265.03 811.82,264.16 817.27,263.29 822.73,262.41 828.18,261.53 833.64,260.65 839.09,259.77 844.55,258.89 850.00,258.00"/>
+<text x="48" y="312" fill="#9bb5a8" font-family="IBM Plex Mono, monospace" font-size="10" transform="rotate(-90 48,312)">Trend</text>
+<rect x="40" y="389" width="830" height="155" rx="12" fill="#0d1a14" stroke="#2a4a38"/>
+<text x="52" y="411" fill="#53ff9b" font-family="IBM Plex Mono, monospace" font-size="12">Seasonal</text>
+<line x1="70" y1="425.0" x2="850" y2="425.0" stroke="#1a2f24" stroke-width="1"/>
+<line x1="70" y1="451.2" x2="850" y2="451.2" stroke="#1a2f24" stroke-width="1"/>
+<line x1="70" y1="477.5" x2="850" y2="477.5" stroke="#1a2f24" stroke-width="1"/>
+<line x1="70" y1="503.8" x2="850" y2="503.8" stroke="#1a2f24" stroke-width="1"/>
+<line x1="70" y1="530.0" x2="850" y2="530.0" stroke="#1a2f24" stroke-width="1"/>
+<polyline fill="none" stroke="#53ff9b" stroke-width="1.8" points="70.00,510.72 75.45,480.29 80.91,453.00 86.36,436.15 91.82,428.14 97.27,425.00 102.73,427.57 108.18,441.28 113.64,468.57 119.09,502.13 124.55,526.86 130.00,530.00 135.45,510.72 140.91,480.29 146.36,453.00 151.82,436.15 157.27,428.14 162.73,425.00 168.18,427.57 173.64,441.28 179.09,468.57 184.55,502.13 190.00,526.86 195.45,530.00 200.91,510.72 206.36,480.29 211.82,453.00 217.27,436.15 222.73,428.14 228.18,425.00 233.64,427.57 239.09,441.28 244.55,468.57 250.00,502.13 255.45,526.86 260.91,530.00 266.36,510.72 271.82,480.29 277.27,453.00 282.73,436.15 288.18,428.14 293.64,425.00 299.09,427.57 304.55,441.28 310.00,468.57 315.45,502.13 320.91,526.86 326.36,530.00 331.82,510.72 337.27,480.29 342.73,453.00 348.18,436.15 353.64,428.14 359.09,425.00 364.55,427.57 370.00,441.28 375.45,468.57 380.91,502.13 386.36,526.86 391.82,530.00 397.27,510.72 402.73,480.29 408.18,453.00 413.64,436.15 419.09,428.14 424.55,425.00 430.00,427.57 435.45,441.28 440.91,468.57 446.36,502.13 451.82,526.86 457.27,530.00 462.73,510.72 468.18,480.29 473.64,453.00 479.09,436.15 484.55,428.14 490.00,425.00 495.45,427.57 500.91,441.28 506.36,468.57 511.82,502.13 517.27,526.86 522.73,530.00 528.18,510.72 533.64,480.29 539.09,453.00 544.55,436.15 550.00,428.14 555.45,425.00 560.91,427.57 566.36,441.28 571.82,468.57 577.27,502.13 582.73,526.86 588.18,530.00 593.64,510.72 599.09,480.29 604.55,453.00 610.00,436.15 615.45,428.14 620.91,425.00 626.36,427.57 631.82,441.28 637.27,468.57 642.73,502.13 648.18,526.86 653.64,530.00 659.09,510.72 664.55,480.29 670.00,453.00 675.45,436.15 680.91,428.14 686.36,425.00 691.82,427.57 697.27,441.28 702.73,468.57 708.18,502.13 713.64,526.86 719.09,530.00 724.55,510.72 730.00,480.29 735.45,453.00 740.91,436.15 746.36,428.14 751.82,425.00 757.27,427.57 762.73,441.28 768.18,468.57 773.64,502.13 779.09,526.86 784.55,530.00 790.00,510.72 795.45,480.29 800.91,453.00 806.36,436.15 811.82,428.14 817.27,425.00 822.73,427.57 828.18,441.28 833.64,468.57 839.09,502.13 844.55,526.86 850.00,530.00"/>
+<text x="48" y="479" fill="#9bb5a8" font-family="IBM Plex Mono, monospace" font-size="10" transform="rotate(-90 48,479)">Seasonal</text>
+<rect x="40" y="556" width="830" height="155" rx="12" fill="#0d1a14" stroke="#2a4a38"/>
+<text x="52" y="578" fill="#53ff9b" font-family="IBM Plex Mono, monospace" font-size="12">Residual</text>
+<line x1="70" y1="592.0" x2="850" y2="592.0" stroke="#1a2f24" stroke-width="1"/>
+<line x1="70" y1="618.2" x2="850" y2="618.2" stroke="#1a2f24" stroke-width="1"/>
+<line x1="70" y1="644.5" x2="850" y2="644.5" stroke="#1a2f24" stroke-width="1"/>
+<line x1="70" y1="670.8" x2="850" y2="670.8" stroke="#1a2f24" stroke-width="1"/>
+<line x1="70" y1="697.0" x2="850" y2="697.0" stroke="#1a2f24" stroke-width="1"/>
+<polyline fill="none" stroke="#53ff9b" stroke-width="1.8" points="70.00,618.25 75.45,594.56 80.91,655.88 86.36,675.18 91.82,635.24 97.27,641.73 102.73,636.30 108.18,628.20 113.64,678.26 119.09,663.70 124.55,594.33 130.00,610.46 135.45,692.18 140.91,640.54 146.36,619.50 151.82,648.72 157.27,640.64 162.73,656.44 168.18,669.19 173.64,610.55 179.09,617.82 184.55,692.87 190.00,633.07 195.45,602.16 200.91,643.41 206.36,663.00 211.82,644.10 217.27,656.84 222.73,632.12 228.18,612.13 233.64,677.04 239.09,678.84 244.55,601.05 250.00,597.83 255.45,680.62 260.91,649.48 266.36,634.45 271.82,644.34 277.27,624.29 282.73,655.71 288.18,684.83 293.64,616.52 299.09,604.74 304.55,682.08 310.00,642.27 315.45,616.62 320.91,638.88 326.36,646.64 331.82,643.60 337.27,672.93 342.73,637.64 348.18,598.38 353.64,666.91 359.09,688.62 364.55,614.88 370.00,592.96 375.45,664.59 380.91,649.14 386.36,650.71 391.82,649.67 397.27,609.94 402.73,645.96 408.18,695.39 413.64,629.81 419.09,599.22 424.55,666.53 430.00,642.30 435.45,632.73 440.91,644.07 446.36,631.96 451.82,633.95 457.27,684.22 462.73,650.68 468.18,592.00 473.64,651.75 479.09,689.33 484.55,630.66 490.00,597.82 495.45,649.90 500.91,639.55 506.36,662.47 511.82,662.73 517.27,602.73 522.73,630.89 528.18,697.00 533.64,645.37 539.09,603.41 544.55,652.01 550.00,632.98 555.45,644.63 560.91,657.19 566.36,624.19 571.82,618.73 577.27,686.71 582.73,666.30 588.18,595.31 593.64,637.29 599.09,680.59 604.55,642.54 610.00,610.78 615.45,641.89 620.91,624.12 626.36,665.57 631.82,678.67 637.27,605.17 642.73,616.22 648.18,689.09 653.64,657.33 659.09,615.90 664.55,643.91 670.00,617.55 675.45,648.03 680.91,673.51 686.36,626.01 691.82,603.57 697.27,679.62 702.73,678.62 708.18,607.07 713.64,629.01 719.09,665.50 724.55,646.09 730.00,627.27 735.45,643.40 740.91,608.42 746.36,659.04 751.82,691.61 757.27,616.22 762.73,607.47 768.18,674.58 773.64,661.11 779.09,632.21 784.55,645.27 790.00,601.52 795.45,641.77 800.91,687.13 806.36,636.58 811.82,594.08 817.27,665.68 822.73,682.94 828.18,622.97 833.64,630.11 839.09,649.47 844.55,639.94 850.00,641.38"/>
+<text x="48" y="646" fill="#9bb5a8" font-family="IBM Plex Mono, monospace" font-size="10" transform="rotate(-90 48,646)">Residual</text>
+<text x="70.0" y="693" fill="#9bb5a8" font-family="DM Sans, Helvetica, Arial, sans-serif" font-size="11" text-anchor="middle">1949</text>
+<text x="200.0" y="693" fill="#9bb5a8" font-family="DM Sans, Helvetica, Arial, sans-serif" font-size="11" text-anchor="middle">1951</text>
+<text x="330.0" y="693" fill="#9bb5a8" font-family="DM Sans, Helvetica, Arial, sans-serif" font-size="11" text-anchor="middle">1953</text>
+<text x="460.0" y="693" fill="#9bb5a8" font-family="DM Sans, Helvetica, Arial, sans-serif" font-size="11" text-anchor="middle">1955</text>
+<text x="590.0" y="693" fill="#9bb5a8" font-family="DM Sans, Helvetica, Arial, sans-serif" font-size="11" text-anchor="middle">1957</text>
+<text x="720.0" y="693" fill="#9bb5a8" font-family="DM Sans, Helvetica, Arial, sans-serif" font-size="11" text-anchor="middle">1959</text>
+<text x="450.0" y="762" fill="#9bb5a8" font-family="DM Sans, Helvetica, Arial, sans-serif" font-size="12" text-anchor="middle">Month</text>
+</svg>
+      </div>
+    </div>
+
+    <h2 id="target">4. What we explain</h2>
+    <p>
+      For each product‑market unit and forecast baseline date, the quantity to
+      explain is six‑month underlying growth:
+    </p>
+    <div class="formula">Growth = Trend(today + 6 months) − Trend(today)</div>
+    <p>
+      That value is expressed in the same commercial units as the forecast
+      (for example volume or local currency), so contributions can be read
+      directly on a waterfall.
+    </p>
+
+    <h2 id="drivers">5. Drivers and features</h2>
+    <p>
+      Drivers are business signals available at the baseline date. Growth‑style
+      transforms (year‑over‑year, recent change) describe whether those signals
+      are accelerating — which is what stakeholders usually mean by “what is
+      driving the outlook.”
+    </p>
+    <div class="grid-2">
+      <div class="card">
+        <p class="label">Core drivers</p>
+        <ul>
+          <li><strong>Patients</strong> — level and recent growth</li>
+          <li><strong>Price</strong> — level and recent change</li>
+        </ul>
+      </div>
+      <div class="card">
+        <p class="label">Feature style</p>
+        <ul>
+          <li>Levels where useful</li>
+          <li>Year‑over‑year growth</li>
+          <li>Short‑window dynamics (for example last 3 months)</li>
+        </ul>
+      </div>
+    </div>
+    <p>
+      The attribution model uses these driver features — not lagged sales‑trend
+      features — so the explanation does not collapse into “growth is up because
+      recent growth was already up.”
+    </p>
+
+    <h2 id="attribution">6. How importance is calculated</h2>
+    <p>
+      An attribution model estimates how much each driver feature contributes
+      to the six‑month growth figure:
+    </p>
+    <div class="formula">Growth ≈ baseline + sum of (weight × driver feature)</div>
+    <p>For each feature, contribution is:</p>
+    <div class="formula">Contribution = weight × feature value</div>
+    <p>
+      Features belonging to the same business driver are grouped
+      (for example all patient features → Patients). Each driver’s total
+      contribution becomes its impact on six‑month growth.
+    </p>
+    <p>Share of impact used for intensity bars:</p>
+    <div class="formula">Share = |driver impact| / sum(|all driver impacts|)</div>
+    <ul>
+      <li><strong>Impact</strong> keeps the sign (supports or offsets growth).</li>
+      <li><strong>Share</strong> shows relative magnitude for visual comparison.</li>
+      <li>Any remainder not captured by drivers can appear as <strong>Unexplained</strong>.</li>
+    </ul>
+
+    <h2 id="output">7. What users see</h2>
+    <p>
+      Users never see raw feature names, horizons, or model weights. They see a
+      small set of <strong>business drivers</strong>, each with:
+    </p>
+    <table>
+      <thead>
+        <tr>
+          <th>Field</th>
+          <th>Meaning</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Driver</strong></td>
+          <td>Natural‑language label (Patients, Price, Commercial investment, Competition, Unexplained, …)</td>
+        </tr>
+        <tr>
+          <td><strong>Impact</strong></td>
+          <td>Signed effect on six‑month underlying growth (volume or €)</td>
+        </tr>
+        <tr>
+          <td><strong>Share of impact</strong></td>
+          <td>Relative size of that effect (for intensity bars)</td>
+        </tr>
+        <tr>
+          <td><strong>Plain‑language note</strong> (optional)</td>
+          <td>One short sentence, e.g. “Patient growth over the last year is the main support.”</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      <strong>Default view:</strong> a waterfall (or intensity list) from baseline
+      underlying growth to the explained total.
+    </p>
+    <p>
+      <strong>Drill‑down (optional, still non‑technical):</strong> expand a driver
+      to see which time lens mattered most — for example under Patients:
+      “Last 3 months” vs “Last 12 months” — without exposing feature engineering names.
+    </p>
+    <div class="callout">
+      <p>
+        Over the next six months, underlying growth is <strong>+1.9k units</strong>.<br />
+        <strong>Patients +2.4k</strong>, <strong>Price −0.4k</strong>,
+        <strong>Commercial investment +0.3k</strong>, <strong>Competition −0.2k</strong>,
+        <strong>Unexplained −0.2k</strong>.
+      </p>
+    </div>
+
+    <h2 id="sample">8. Sample application</h2>
+    <p>
+      The same methodology applies across brands and markets. As a concrete
+      sample, it can be applied to Sanofi Dupixent at indication level:
+    </p>
+    <ul>
+      <li>Start from the monthly Dupixent forecast at sku / country / indication grain</li>
+      <li>Explain six‑month underlying volume growth</li>
+      <li>Attribute that growth to patients and price dynamics</li>
+      <li>Surface a waterfall for each selected product‑market view</li>
+    </ul>
+    <p>
+      Other products follow the same steps; only the grain and available driver
+      inputs change.
+    </p>
+
+    <h2 id="example">9. Illustrative example</h2>
+    <p>
+      Product‑market: Dupixent, US, atopic dermatitis. Baseline: September 2026.
+      Six‑month underlying growth to explain: <strong>+1.90k volume units</strong>.
+      Figures are illustrative.
+    </p>
+
+    <h3 id="example-signals">9.1 Signals used by the attribution model</h3>
+    <p>
+      The model can use several measurements per data source, each covering a
+      different time window. These rows are <strong>internal</strong> — the end
+      user does not see this table as‑is.
+    </p>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Driver family</th>
+            <th>What is measured</th>
+            <th>Time window</th>
+            <th class="num-col">Value at baseline (Sep 2026)</th>
+            <th class="num-col">Effect on 6‑month growth</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Patients</td>
+            <td>Number of patients on treatment</td>
+            <td>Today</td>
+            <td class="num-col">18,500 patients</td>
+            <td class="num-col pos">+0.25k units</td>
+          </tr>
+          <tr>
+            <td>Patients</td>
+            <td>Change in patients</td>
+            <td>Last 3 months</td>
+            <td class="num-col">+220 patients</td>
+            <td class="num-col pos">+0.55k units</td>
+          </tr>
+          <tr>
+            <td>Patients</td>
+            <td>Change in patients</td>
+            <td>Last 6 months</td>
+            <td class="num-col">+480 patients</td>
+            <td class="num-col pos">+0.35k units</td>
+          </tr>
+          <tr>
+            <td>Patients</td>
+            <td>Patient growth rate</td>
+            <td>Last 12 months</td>
+            <td class="num-col">+8.0%</td>
+            <td class="num-col pos">+0.90k units</td>
+          </tr>
+          <tr>
+            <td>Price</td>
+            <td>Net price per unit</td>
+            <td>Today</td>
+            <td class="num-col">$1,120</td>
+            <td class="num-col neg">−0.05k units</td>
+          </tr>
+          <tr>
+            <td>Price</td>
+            <td>Net price change</td>
+            <td>Last 3 months</td>
+            <td class="num-col">−2.0%</td>
+            <td class="num-col neg">−0.22k units</td>
+          </tr>
+          <tr>
+            <td>Price</td>
+            <td>Net price change</td>
+            <td>Last 12 months</td>
+            <td class="num-col">+1.0%</td>
+            <td class="num-col neg">−0.08k units</td>
+          </tr>
+          <tr>
+            <td>Commercial investment</td>
+            <td>Spend intensity</td>
+            <td>Last 3 months</td>
+            <td class="num-col">Index 4.2</td>
+            <td class="num-col pos">+0.10k units</td>
+          </tr>
+          <tr>
+            <td>Commercial investment</td>
+            <td>Spend vs same period last year</td>
+            <td>Last 12 months</td>
+            <td class="num-col">+12%</td>
+            <td class="num-col pos">+0.20k units</td>
+          </tr>
+          <tr>
+            <td>Competition</td>
+            <td>New competitor entered the market</td>
+            <td>Last 6 months</td>
+            <td class="num-col">Yes</td>
+            <td class="num-col neg">−0.15k units</td>
+          </tr>
+          <tr>
+            <td>Competition</td>
+            <td>Competitive pressure</td>
+            <td>Last 12 months</td>
+            <td class="num-col">Medium</td>
+            <td class="num-col neg">−0.05k units</td>
+          </tr>
+          <tr>
+            <td>Plan / outlook</td>
+            <td>Planned growth in the outlook</td>
+            <td>Next 6 months</td>
+            <td class="num-col">+3%</td>
+            <td class="num-col pos">+0.10k units</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">
+      Each “Effect on 6‑month growth” is how much that signal adds to (or subtracts from)
+      the <strong>+1.90k units</strong> of underlying growth being explained.
+      Positive = support; negative = headwind.
+    </p>
+
+    <h3 id="example-blend">9.2 Blending time windows into one user‑facing driver</h3>
+    <p>
+      Measurements of the <strong>same driver family</strong> are added together
+      before display, so the user sees one label — not four patient rows or three
+      price rows:
+    </p>
+    <div class="formula">Driver impact = sum of effects of all measurements under that driver family</div>
+    <div class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>Driver shown to the user</th>
+            <th>What was rolled up</th>
+            <th class="num-col">Impact on growth</th>
+            <th class="num-col">Share of total effect</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Patients</strong></td>
+            <td>Today + last 3 / 6 / 12 months</td>
+            <td class="num-col pos"><strong>+2.05k units</strong></td>
+            <td class="num-col">61%</td>
+          </tr>
+          <tr>
+            <td><strong>Price</strong></td>
+            <td>Today + last 3 / 12 months</td>
+            <td class="num-col neg"><strong>−0.35k units</strong></td>
+            <td class="num-col">10%</td>
+          </tr>
+          <tr>
+            <td><strong>Commercial investment</strong></td>
+            <td>Last 3 months + last 12 months</td>
+            <td class="num-col pos"><strong>+0.30k units</strong></td>
+            <td class="num-col">9%</td>
+          </tr>
+          <tr>
+            <td><strong>Competition</strong></td>
+            <td>Last 6 months entry + last 12 months pressure</td>
+            <td class="num-col neg"><strong>−0.20k units</strong></td>
+            <td class="num-col">6%</td>
+          </tr>
+          <tr>
+            <td><strong>Plan alignment</strong></td>
+            <td>Next‑6‑month planned growth</td>
+            <td class="num-col pos"><strong>+0.10k units</strong></td>
+            <td class="num-col">3%</td>
+          </tr>
+          <tr>
+            <td><strong>Unexplained</strong></td>
+            <td>Anything left after the drivers above</td>
+            <td class="num-col"><strong>0.00k units</strong></td>
+            <td class="num-col">0%</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p>
+      In this mock the drivers sum exactly to the <strong>+1.90k</strong> target.
+      In real runs, any gap is shown as <strong>Unexplained</strong>.
+    </p>
+
+    <div class="card">
+      <p class="label">How to talk about mixed time windows</p>
+      <ul>
+        <li>Do <strong>not</strong> show separate top‑level bars for “patients last 3 months” and “patients last 12 months”.</li>
+        <li>Do show <strong>one</strong> “Patients” bar.</li>
+        <li>
+          Optionally add a short note from the largest piece, e.g.
+          “Mostly supported by <strong>12‑month patient growth</strong>, with additional lift from the <strong>last 3 months</strong>.”
+        </li>
+        <li>
+          Same pattern for Price (“recent price softness”), Investment (“higher spend vs last year”),
+          Competition (“new entrant in the last half‑year”).
+        </li>
+      </ul>
+      <p style="margin:0.35rem 0 0">
+        Rule of thumb: <strong>one label per driver family</strong> in the default view;
+        time windows only appear in an optional drill‑down or a short supporting sentence.
+      </p>
+    </div>
+
+    <h3 id="example-ui">9.3 What the final user sees</h3>
+    <p class="label">Headline</p>
+    <div class="callout">
+      <p>
+        Over the next 6 months, underlying growth is expected at <strong>+1.9k units</strong>.
+        The main support is <strong>patient expansion</strong>.
+        <strong>Price</strong> slightly offsets the outlook;
+        <strong>commercial investment</strong> adds a smaller positive;
+        <strong>competition</strong> is a mild headwind.
+      </p>
+    </div>
+
+    <p class="label">Waterfall / intensity list (primary UI)</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Driver</th>
+          <th class="num-col">Impact on growth</th>
+          <th>Intensity</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>Patients</strong></td>
+          <td class="num-col pos">+2.05k units</td>
+          <td>
+            <div class="intensity">
+              <div class="bar-track"><div class="bar-fill" style="width:100%"></div></div>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Price</strong></td>
+          <td class="num-col neg">−0.35k units</td>
+          <td>
+            <div class="intensity">
+              <div class="bar-track"><div class="bar-fill neg-bar" style="width:17%"></div></div>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Commercial investment</strong></td>
+          <td class="num-col pos">+0.30k units</td>
+          <td>
+            <div class="intensity">
+              <div class="bar-track"><div class="bar-fill" style="width:15%"></div></div>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Competition</strong></td>
+          <td class="num-col neg">−0.20k units</td>
+          <td>
+            <div class="intensity">
+              <div class="bar-track"><div class="bar-fill neg-bar" style="width:10%"></div></div>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Plan alignment</strong></td>
+          <td class="num-col pos">+0.10k units</td>
+          <td>
+            <div class="intensity">
+              <div class="bar-track"><div class="bar-fill" style="width:5%"></div></div>
+            </div>
+          </td>
+        </tr>
+        <tr>
+          <td><strong>Unexplained</strong></td>
+          <td class="num-col">0.0k units</td>
+          <td>
+            <div class="intensity">
+              <div class="bar-track"><div class="bar-fill" style="width:0%"></div></div>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p class="label">Optional drill‑down (user expands “Patients”)</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Time window</th>
+          <th class="num-col">Impact within Patients</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Last 12 months</td>
+          <td class="num-col pos">+0.90k units</td>
+        </tr>
+        <tr>
+          <td>Last 3 months</td>
+          <td class="num-col pos">+0.55k units</td>
+        </tr>
+        <tr>
+          <td>Last 6 months</td>
+          <td class="num-col pos">+0.35k units</td>
+        </tr>
+        <tr>
+          <td>Today (patient stock)</td>
+          <td class="num-col pos">+0.25k units</td>
+        </tr>
+      </tbody>
+    </table>
+    <p>
+      Default view stays business language only: driver name, impact on growth,
+      and short notes — no model jargon or engineering field names.
+    </p>
+
+    <footer>
+      Forecast trend explainability · Explains six‑month underlying growth after the monthly forecast.
+      Sample application: Dupixent at indication level.
+    </footer>
+  </main>
+</body>
+</html>
